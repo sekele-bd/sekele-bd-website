@@ -1,0 +1,132 @@
+// Prisma schema — SQLite for development
+// Production: change provider to "postgresql" and DATABASE_URL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Auth ----------
+model Admin {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------- Hero Slider ----------
+model Slider {
+  id        String   @id @default(cuid())
+  image     String
+  alt       String?
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------- About / Our Story ----------
+model SiteContent {
+  id        String   @id @default(cuid())
+  key       String   @unique // e.g. "our_story", "about_intro", "contact_address"
+  title     String?
+  content   String // JSON string or plain text
+  updatedAt DateTime @updatedAt
+}
+
+// ---------- Contact + Social ----------
+model SocialLink {
+  id        String   @id @default(cuid())
+  platform  String // facebook, instagram, youtube, etc.
+  url       String
+  icon      String?
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------- Albums / Portfolio ----------
+model Album {
+  id          String   @id @default(cuid())
+  title       String
+  location    String?
+  date        String?
+  type        String? // Wedding, Holud, Reception...
+  description String?
+  cover       String?
+  slug        String   @unique
+  order       Int      @default(0)
+  isFeatured  Boolean  @default(false)
+  isPublished Boolean  @default(true)
+  images      AlbumImage[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AlbumImage {
+  id      String @id @default(cuid())
+  albumId String
+  album   Album  @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  url     String
+  alt     String?
+  order   Int    @default(0)
+}
+
+// ---------- Packages ----------
+model Package {
+  id        String   @id @default(cuid())
+  name      String
+  type      String? // Photography + Cinematography
+  price     String
+  oldPrice  String?
+  image     String?
+  features  String // JSON array string
+  popular   Boolean  @default(false)
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------- FAQ ----------
+model Faq {
+  id        String   @id @default(cuid())
+  question  String
+  answer    String
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Film {
+  id         String   @id @default(cuid())
+  title      String
+  youtubeUrl String
+  order      Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// ---------- Team ----------
+model TeamMember {
+  id        String   @id @default(cuid())
+  name      String
+  role      String?
+  image     String?
+  facebook  String?
+  instagram String?
+  email     String?
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

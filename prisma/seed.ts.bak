@@ -1,0 +1,92 @@
+import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
+
+const prisma = new PrismaClient();
+
+async function main() {
+  const email = process.env.ADMIN_EMAIL || "admin@sekele.com";
+  const password = process.env.ADMIN_PASSWORD || "admin123";
+  const hash = await bcrypt.hash(password, 10);
+
+  await prisma.admin.upsert({
+    where: { email },
+    update: {},
+    create: { email, password: hash, name: "Sekele Admin" },
+  });
+
+  // Our Story
+  await prisma.siteContent.upsert({
+    where: { key: "our_story" },
+    update: {},
+    create: {
+      key: "our_story",
+      title: "Welcome to Sekele",
+      content: JSON.stringify([
+        "We are a creative wedding photography team from Bangladesh. Our journey began with a simple belief — every wedding has a unique soul, and it deserves to be told with honesty and heart.",
+        "We focus on capturing the quiet glances, the loud laughter, the tears of joy, and the bonds that matter most. From intimate village ceremonies to grand city celebrations, we document the real story of your day.",
+        "Our photographs are not just images — they become more valuable with time.",
+      ]),
+    },
+  });
+
+  // Contact
+  await prisma.siteContent.upsert({
+    where: { key: "contact" },
+    update: {},
+    create: {
+      key: "contact",
+      title: "Get in touch",
+      content: JSON.stringify({
+        address: "House no: 26/1, Road-4, Rupnagar, Mirpur-2, Dhaka",
+        phone: "+8801839-659916",
+        email: "hello@sekele.com",
+        note: "Have a date in mind? Reach out — we would love to hear your story.",
+      }),
+    },
+  });
+
+  // Socials
+  const socials = [
+    { platform: "facebook", url: "https://facebook.com/", order: 1 },
+    { platform: "instagram", url: "https://instagram.com/", order: 2 },
+    { platform: "youtube", url: "https://youtube.com/", order: 3 },
+  ];
+  for (const s of socials) {
+    const exists = await prisma.socialLink.findFirst({ where: { platform: s.platform } });
+    if (!exists) await prisma.socialLink.create({ data: s });
+  }
+
+  // Sample FAQs
+  const faqCount = await prisma.faq.count();
+  if (faqCount === 0) {
+    await prisma.faq.createMany({
+      data: [
+        {
+          question: "How far in advance should we book?",
+          answer: "We recommend booking 3–6 months in advance, especially for peak wedding season.",
+          order: 1,
+        },
+        {
+          question: "Do you travel outside Dhaka?",
+          answer: "Yes. We cover weddings across Bangladesh. Travel fees may apply depending on location.",
+          order: 2,
+        },
+        {
+          question: "What is your payment policy?",
+          answer: "80% advance to confirm booking. Remaining balance before or on the event day. Cancellation fee 30%.",
+          order: 3,
+        },
+      ],
+    });
+  }
+
+  console.log("✅ Seed complete");
+  console.log(`   Admin: ${email} / ${password}`);
+}
+
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(() => prisma.$disconnect());
