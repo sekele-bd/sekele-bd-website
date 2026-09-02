@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 import AdminModal from "@/components/admin/AdminModal";
 import ConfirmModal from "@/components/admin/ConfirmModal";
 import { useToast } from "@/components/admin/Toast";
+import Loading from "@/components/Loading";
 
 type Social = {
   id: string;
@@ -25,6 +26,7 @@ export default function AdminSocialsPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [pageLoading, setpageLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -39,6 +41,7 @@ export default function AdminSocialsPage() {
     }
     const data = await res.json();
     if (Array.isArray(data)) setItems(data);
+    setpageLoading(false);
   }
 
   useEffect(() => {
@@ -139,6 +142,8 @@ export default function AdminSocialsPage() {
       setDeletingId(null);
     }
   }
+
+  if (pageLoading) return <Loading variant="section" label="Loading social links…" />;
 
   return (
     <>

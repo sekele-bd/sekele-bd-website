@@ -7,6 +7,8 @@ import { ImagePlus, LoaderCircle, Plus, Trash2 } from "lucide-react";
 import AdminModal from "@/components/admin/AdminModal";
 import ConfirmModal from "@/components/admin/ConfirmModal";
 import { useToast } from "@/components/admin/Toast";
+import Loading from "@/components/Loading";
+
 
 type Slider = {
   id: string;
@@ -43,6 +45,7 @@ export default function AdminSlidersPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   async function load() {
     const res = await fetch("/api/admin/sliders");
@@ -65,7 +68,12 @@ export default function AdminSlidersPage() {
       })
       .then((data) => {
         if (!cancelled && data) setItems(data);
-      });
+      })
+      .finally(() => {
+      if (!cancelled) setLoading(false);
+    });
+      ;
+    
     return () => {
       cancelled = true;
     };
@@ -158,6 +166,13 @@ export default function AdminSlidersPage() {
       setDeletingId(null);
     }
   }
+
+    if (loading) {
+      return (
+        <Loading variant="section" label="Loading Sliders.." />
+      );
+    }
+  
 
   return (
     <>

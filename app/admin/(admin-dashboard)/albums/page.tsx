@@ -7,6 +7,7 @@ import { ImagePlus, LoaderCircle, Plus, Trash2, Upload } from "lucide-react";
 import AdminModal from "@/components/admin/AdminModal";
 import ConfirmModal from "@/components/admin/ConfirmModal";
 import { useToast } from "@/components/admin/Toast";
+import Loading from "@/components/Loading";
 
 type Album = {
   id: string;
@@ -60,6 +61,7 @@ export default function AdminAlbumsPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [pageLoading, setpageLoading] = useState(true);
 
   async function load() {
     const response = await fetch("/api/admin/albums");
@@ -79,7 +81,8 @@ export default function AdminAlbumsPage() {
       })
       .then((data) => {
         if (!cancelled && data) setItems(data);
-      });
+      })
+      .finally(() => setpageLoading(false));
     return () => {
       cancelled = true;
     };
@@ -206,6 +209,10 @@ export default function AdminAlbumsPage() {
       setDeletingId(null);
     }
   }
+
+  if (pageLoading) {
+  return <Loading variant="section" label="Loading albums…" />;
+}
 
   return (
     <section className="admin-editor mx-auto max-w-7xl">

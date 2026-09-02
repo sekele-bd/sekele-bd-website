@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ImagePlus, LoaderCircle, Pencil, Trash2 } from "lucide-react";
 import AdminModal from "@/components/admin/AdminModal";
+import Loading from "@/components/Loading";
 
 const fieldClass =
   "w-full rounded-lg border border-neutral-200 bg-white px-3.5 py-2.5 text-sm text-neutral-900 outline-none transition placeholder:text-neutral-400 focus:border-rose-500 focus:ring-3 focus:ring-rose-100";
@@ -52,6 +53,7 @@ export default function AdminContactPage() {
     note: "",
     heroImage: "",
   });
+  const [loading, setLoading] = useState(true);
 
   function applyData(data: { title?: string; content?: string }) {
     const t = data.title || "";
@@ -89,7 +91,9 @@ export default function AdminContactPage() {
       })
       .then((data) => {
         if (data) applyData(data);
-      });
+      })
+      .finally(() => setLoading(false))
+      ;
   }, [router]);
 
   function openEdit() {
@@ -132,6 +136,10 @@ export default function AdminContactPage() {
   }
 
   const previewHero = heroImage || DEFAULT_HERO;
+
+if (loading) {
+  return <Loading variant="section" label="Loading booking details…" />;
+}
 
   return (
     <section>

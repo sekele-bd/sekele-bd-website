@@ -8,6 +8,7 @@ import AdminModal from "@/components/admin/AdminModal";
 import AdminPackagesNote from "@/components/admin/AdminPackagesNote";
 import ConfirmModal from "@/components/admin/ConfirmModal";
 import { useToast } from "@/components/admin/Toast";
+import Loading from "@/components/Loading";
 
 type Pkg = {
   id: string;
@@ -62,6 +63,7 @@ export default function AdminPackagesPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   async function load() {
     const response = await fetch("/api/admin/packages");
@@ -81,7 +83,11 @@ export default function AdminPackagesPage() {
       })
       .then((data) => {
         if (!cancelled && data) setItems(data);
-      });
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      })
+      ;
     return () => {
       cancelled = true;
     };
@@ -230,6 +236,11 @@ export default function AdminPackagesPage() {
       setDeletingId(null);
     }
   }
+
+
+  if (loading) {
+  return <Loading variant="section" label="Loading packages…" />;
+}
 
   return (
     <section className="admin-editor mx-auto max-w-7xl">

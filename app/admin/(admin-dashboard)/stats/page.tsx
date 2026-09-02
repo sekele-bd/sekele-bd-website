@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import AdminModal from "@/components/admin/AdminModal";
+import Loading from "@/components/Loading";
 
 type StatItem = {
   value: number;
@@ -27,6 +28,7 @@ export default function AdminStatsPage() {
   const [draftTitle, setDraftTitle] = useState("");
   const [draftItems, setDraftItems] = useState<StatItem[]>([]);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch("/api/admin/stats")
@@ -41,7 +43,8 @@ export default function AdminStatsPage() {
         if (!data) return;
         setSectionTitle(data.title || "Moments we've been trusted with");
         setItems(Array.isArray(data.items) ? data.items : []);
-      });
+      })
+      .finally(() => setLoading(false));
   }, [router]);
 
   function openEdit() {
@@ -90,6 +93,10 @@ export default function AdminStatsPage() {
     setSaving(false);
     setModalOpen(false);
   }
+
+  if (loading) {
+  return <Loading variant="section" label="Loading stats.." />;
+}
 
   return (
     <>

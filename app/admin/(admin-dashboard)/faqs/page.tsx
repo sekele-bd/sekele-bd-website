@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 import AdminModal from "@/components/admin/AdminModal";
 import ConfirmModal from "@/components/admin/ConfirmModal";
 import { useToast } from "@/components/admin/Toast";
+import Loading from "@/components/Loading";
 
 type Faq = {
   id: string;
@@ -29,6 +30,7 @@ export default function AdminFaqsPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
 
   async function load() {
     const res = await fetch("/api/admin/faqs");
@@ -51,7 +53,11 @@ export default function AdminFaqsPage() {
       })
       .then((data) => {
         if (!cancelled && data) setItems(data);
-      });
+      })
+      .finally(() => {
+        if (!cancelled) setPageLoading(false);
+      })
+      ;
     return () => {
       cancelled = true;
     };
@@ -132,6 +138,11 @@ export default function AdminFaqsPage() {
       setConfirmOpen(false);
       setDeletingId(null);
     }
+  }
+
+  if (pageLoading) {
+  return <Loading variant="section" label="Loading FAQs…" />;
+
   }
 
   return (

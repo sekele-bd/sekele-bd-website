@@ -14,6 +14,7 @@ export default function AdminAboutPage() {
   const [draftTitle, setDraftTitle] = useState("");
   const [draftParagraphs, setDraftParagraphs] = useState("");
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch("/api/admin/about")
@@ -33,7 +34,8 @@ export default function AdminAboutPage() {
         } catch {
           setParagraphs(data.content || "");
         }
-      });
+      })
+      .finally(() => setLoading(false));
   }, [router]);
 
   function openEdit() {
@@ -63,6 +65,10 @@ export default function AdminAboutPage() {
     .split(/\n\s*\n/)
     .map((s) => s.trim())
     .filter(Boolean);
+  
+ if (loading) {
+  return <Loading variant="section" label="Loading Our Story…" />;
+}
 
   return (
     <>

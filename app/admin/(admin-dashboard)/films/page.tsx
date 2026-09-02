@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 import AdminModal from "@/components/admin/AdminModal";
 import ConfirmModal from "@/components/admin/ConfirmModal";
 import { useToast } from "@/components/admin/Toast";
+import Loading from "@/components/Loading";
 
 type Film = {
   id: string;
@@ -50,11 +51,13 @@ export default function AdminFilmsPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   async function load() {
     const res = await fetch("/api/admin/films");
     if (res.status === 401) return router.push("/admin/login");
     setItems(await res.json());
+    setLoading(false);
   }
 
   useEffect(() => {
@@ -144,6 +147,10 @@ export default function AdminFilmsPage() {
   }
 
   const thumb = youtubeThumb(form.youtubeUrl);
+
+ if (loading) {
+  return <Loading variant="section" label="Loading films…" />;
+}
 
   return (
     <>
