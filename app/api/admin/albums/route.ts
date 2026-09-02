@@ -18,7 +18,6 @@ export async function GET() {
       include: { images: { orderBy: { order: "asc" } } },
       orderBy: { order: "asc" },
     });
-    afterAdminChange(CACHE_TAGS.albums);
     return json(items);
   } catch {
     return error("Unauthorized", 401);
@@ -68,7 +67,8 @@ export async function POST(req: Request) {
           : undefined,
       },
       include: { images: true },
-    });
+    }); 
+    afterAdminChange(CACHE_TAGS.albums);
     return json(item, 201);
   } catch (e) {
     if ((e as Error).message === "UNAUTHORIZED") return error("Unauthorized", 401);
