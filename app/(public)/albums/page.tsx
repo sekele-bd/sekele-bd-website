@@ -5,8 +5,18 @@ import FeaturedFilms from "@/components/FeaturedFilms";
 import { getAlbums, getFilms, getContact } from "@/lib/data";
 
 export const metadata = {
-  title: "Albums | Sekele Photography",
-  description: "Explore our wedding stories and featured albums.",
+  title: "Albums",
+  description:
+    "Explore our event photography albums — Wedding, Reception, Gaye Holud, Birthday and more. Indoor & outdoor coverage across Bangladesh.",
+  openGraph: {
+    title: "Albums | Sekele Photography",
+    description:
+      "Browse our collection of event photography albums from across Bangladesh.",
+    images: ["/og-image.jpg"],
+  },
+  alternates: {
+    canonical: "/albums",
+  },
 };
 
 export default async function AlbumsPage() {

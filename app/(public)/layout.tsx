@@ -1,5 +1,6 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import JsonLd from "@/components/JsonLd";
 import { getContact } from "@/lib/data";
 
 /** ISR hint — data still uses unstable_cache tags */
@@ -22,6 +23,17 @@ export default async function PublicLayout({
 
   return (
     <>
+      <JsonLd
+        contact={{
+          address: contact.address,
+          phone: contact.phone,
+          email: contact.email,
+        }}
+        socials={contact.socials.map((s) => ({
+          platform: s.platform,
+          url: s.url,
+        }))}
+      />
       <Navbar />
       {children}
       <Footer

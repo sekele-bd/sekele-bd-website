@@ -6,8 +6,18 @@ import BookingCTA from "@/components/BookingCTA";
 import { getOurStory, getTeam, getContact } from "@/lib/data";
 
 export const metadata = {
-  title: "About Us | Sekele Photography",
-  description: "Meet the team behind Sekele — wedding photography from Bangladesh.",
+  title: "About Us",
+  description:
+    "Meet the team behind Sekele — professional event photography & cinematography in Bangladesh. Wedding, Reception, Gaye Holud, Birthday and all events.",
+  openGraph: {
+    title: "About Us | Sekele Photography",
+    description:
+      "Meet the team behind Sekele — event photography & cinematography across Bangladesh.",
+    images: ["/og-image.jpg"],
+  },
+  alternates: {
+    canonical: "/about",
+  },
 };
 
 export default async function AboutPage() {

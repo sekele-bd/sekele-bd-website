@@ -8,10 +8,45 @@ type Props = { params: Promise<{ id: string }> };
 export async function generateMetadata({ params }: Props) {
   const { id } = await params;
   const album = await getAlbumBySlug(id).catch(() => null);
-  if (!album) return { title: "Album | Sekele" };
+
+  if (!album) {
+    return { title: "Album | Sekele Photography" };
+  }
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://sekelebd.com";
+  const image = album.cover || album.images?.[0]?.url;
+  const description =
+    album.description ||
+    `${album.title}${album.location ? ` — ${album.location}` : ""} | Wedding photography by Sekele`;
+
   return {
-    title: `${album.title} | Sekele Photography`,
-    description: album.location || "Wedding album by Sekele",
+    title: album.title,
+    description,
+    openGraph: {
+      title: `${album.title} | Sekele Photography`,
+      description,
+      url: `${siteUrl}/albums/${album.slug || album.id}`,
+      type: "article",
+      images: image
+        ? [
+            {
+              url: image,
+              width: 1200,
+              height: 630,
+              alt: album.title,
+            },
+          ]
+        : [],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${album.title} | Sekele Photography`,
+      description,
+      images: image ? [image] : [],
+    },
+    alternates: {
+      canonical: `/albums/${album.slug || album.id}`,
+    },
   };
 }
 

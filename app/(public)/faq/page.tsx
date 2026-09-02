@@ -4,8 +4,18 @@ import BookingCTA from "@/components/BookingCTA";
 import { getFaqs, getContact } from "@/lib/data";
 
 export const metadata = {
-  title: "FAQ | Sekele Photography",
-  description: "Frequently asked questions about Sekele wedding photography.",
+  title: "FAQ",
+  description:
+    "Frequently asked questions about Sekele event photography & cinematography. Booking, packages, coverage area and more.",
+  openGraph: {
+    title: "FAQ | Sekele Photography",
+    description:
+      "Common questions about our event photography and cinematography services.",
+    images: ["/og-image.jpg"],
+  },
+  alternates: {
+    canonical: "/faq",
+  },
 };
 
 export default async function FAQPage() {

@@ -5,8 +5,18 @@ import BookingCTA from "@/components/BookingCTA";
 import { getPackages, getPackagesNote, getContact } from "@/lib/data";
 
 export const metadata = {
-  title: "Packages | Sekele Photography",
-  description: "Find the right photography package for your wedding.",
+  title: "Packages",
+  description:
+    "Photography & cinematography packages for Wedding, Reception, Gaye Holud, Birthday and all indoor & outdoor events in Bangladesh.",
+  openGraph: {
+    title: "Packages | Sekele Photography",
+    description:
+      "Find the right photography & cinematography package for your event.",
+    images: ["/og-image.jpg"],
+  },
+  alternates: {
+    canonical: "/packages",
+  },
 };
 
 export default async function PackagesPage() {
