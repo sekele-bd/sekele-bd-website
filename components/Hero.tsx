@@ -142,7 +142,6 @@
 //   );
 // }
 
-
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -209,7 +208,7 @@ export default function Hero({ slides: slidesProp }: { slides?: Slide[] }) {
 
   return (
     <section
-      className="relative aspect-[16/11] w-full overflow-hidden bg-neutral-950 md:flex md:h-full md:min-h-[85vh] md:aspect-auto md:items-end"
+      className="relative aspect-[15.45/10.33] w-full overflow-hidden bg-neutral-950 md:flex md:h-full md:min-h-[85vh] md:aspect-auto md:items-end"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
