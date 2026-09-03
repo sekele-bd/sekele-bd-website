@@ -1,34 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import AdminModal from "@/components/admin/AdminModal";
 
-export default function AdminPackagesNote() {
-  const router = useRouter();
-  const [title, setTitle] = useState("Good to know");
-  const [items, setItems] = useState<string[]>([]);
+export default function AdminPackagesNote({
+  initialData,
+}: {
+  initialData: { title: string; items: string[] };
+}) {
+  const [title, setTitle] = useState(initialData.title);
+  const [items, setItems] = useState<string[]>(initialData.items);
   const [modalOpen, setModalOpen] = useState(false);
   const [draftTitle, setDraftTitle] = useState("");
   const [draftItems, setDraftItems] = useState<string[]>([""]);
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/admin/packages-note")
-      .then((r) => {
-        if (r.status === 401) {
-          router.push("/admin/login");
-          return null;
-        }
-        return r.json();
-      })
-      .then((data) => {
-        if (!data) return;
-        setTitle(data.title || "Good to know");
-        setItems(Array.isArray(data.items) ? data.items : []);
-      });
-  }, [router]);
 
   function openEdit() {
     setDraftTitle(title);
