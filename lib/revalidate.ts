@@ -4,7 +4,7 @@ import { CACHE_TAGS, type CacheTag } from "./cache-tags";
 /** এক বা একাধিক tag invalidate */
 export function revalidateTags(...tags: CacheTag[]) {
   for (const tag of tags) {
-    revalidateTag(tag, "default");
+    revalidateTag(tag, { expire: 0 });
   }
 }
 

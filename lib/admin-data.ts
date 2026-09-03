@@ -1,6 +1,10 @@
+import { unstable_cache } from "next/cache";
 import { prisma } from "./prisma";
+import { CACHE_TAGS } from "./cache-tags";
 
-export async function getAdminDashboardData() {
+const FIVE_MINUTES = 60 * 5;
+
+export const getAdminDashboardData = unstable_cache(async () => {
   const [
     albums,
     packages,
@@ -58,52 +62,69 @@ export async function getAdminDashboardData() {
     counts: { albums, packages, sliders, faqs, socials, films },
     recentItems,
   };
-}
+}, ["admin-dashboard"], {
+  tags: Object.values(CACHE_TAGS),
+  revalidate: FIVE_MINUTES,
+});
 
-export function getAdminAbout() {
-  return prisma.siteContent.findUnique({ where: { key: "our_story" } });
-}
+export const getAdminAbout = unstable_cache(
+  async () => prisma.siteContent.findUnique({ where: { key: "our_story" } }),
+  ["admin-about"],
+  { tags: [CACHE_TAGS.story], revalidate: FIVE_MINUTES }
+);
 
-export function getAdminContact() {
-  return prisma.siteContent.findUnique({ where: { key: "contact" } });
-}
+export const getAdminContact = unstable_cache(
+  async () => prisma.siteContent.findUnique({ where: { key: "contact" } }),
+  ["admin-contact"],
+  { tags: [CACHE_TAGS.contact], revalidate: FIVE_MINUTES }
+);
 
-export function getAdminAlbums() {
-  return prisma.album.findMany({
-    select: {
-      id: true,
-      title: true,
-      location: true,
-      type: true,
-      cover: true,
-      isFeatured: true,
-      isPublished: true,
-      images: {
-        select: { id: true, url: true },
-        orderBy: { order: "asc" },
+export const getAdminAlbums = unstable_cache(
+  async () =>
+    prisma.album.findMany({
+      select: {
+        id: true,
+        title: true,
+        location: true,
+        type: true,
+        cover: true,
+        isFeatured: true,
+        isPublished: true,
+        images: {
+          select: { id: true, url: true },
+          orderBy: { order: "asc" },
+        },
       },
-    },
-    orderBy: { order: "asc" },
-  });
-}
+      orderBy: { order: "asc" },
+    }),
+  ["admin-albums"],
+  { tags: [CACHE_TAGS.albums], revalidate: FIVE_MINUTES }
+);
 
-export function getAdminFaqs() {
-  return prisma.faq.findMany({ orderBy: { order: "asc" } });
-}
+export const getAdminFaqs = unstable_cache(
+  async () => prisma.faq.findMany({ orderBy: { order: "asc" } }),
+  ["admin-faqs"],
+  { tags: [CACHE_TAGS.faqs], revalidate: FIVE_MINUTES }
+);
 
-export function getAdminFilms() {
-  return prisma.film.findMany({ orderBy: { order: "asc" } });
-}
+export const getAdminFilms = unstable_cache(
+  async () => prisma.film.findMany({ orderBy: { order: "asc" } }),
+  ["admin-films"],
+  { tags: [CACHE_TAGS.films], revalidate: FIVE_MINUTES }
+);
 
-export async function getAdminPackages() {
+export const getAdminPackages = unstable_cache(async () => {
   const items = await prisma.package.findMany({ orderBy: { order: "asc" } });
   return items.map((item) => ({
     ...item,
     features: safeParseArray<string>(item.features),
   }));
-}
+}, ["admin-packages"], {
+  tags: [CACHE_TAGS.packages],
+  revalidate: FIVE_MINUTES,
+});
 
-export async function getAdminPackagesNote() {
+export const getAdminPackagesNote = unstable_cache(async () => {
   const row = await prisma.siteContent.findUnique({
     where: { key: "packages_note" },
   });
@@ -111,17 +132,24 @@ export async function getAdminPackagesNote() {
     title: row?.title || "Good to know",
     items: safeParseArray<string>(row?.content),
   };
-}
+}, ["admin-packages-note"], {
+  tags: [CACHE_TAGS.packagesNote],
+  revalidate: FIVE_MINUTES,
+});
 
-export function getAdminSliders() {
-  return prisma.slider.findMany({ orderBy: { order: "asc" } });
-}
+export const getAdminSliders = unstable_cache(
+  async () => prisma.slider.findMany({ orderBy: { order: "asc" } }),
+  ["admin-sliders"],
+  { tags: [CACHE_TAGS.sliders], revalidate: FIVE_MINUTES }
+);
 
-export function getAdminSocials() {
-  return prisma.socialLink.findMany({ orderBy: { order: "asc" } });
-}
+export const getAdminSocials = unstable_cache(
+  async () => prisma.socialLink.findMany({ orderBy: { order: "asc" } }),
+  ["admin-socials"],
+  { tags: [CACHE_TAGS.socials], revalidate: FIVE_MINUTES }
+);
 
-export async function getAdminStats() {
+export const getAdminStats = unstable_cache(async () => {
   const row = await prisma.siteContent.findUnique({ where: { key: "stats" } });
   return {
     title: row?.title || "Moments we've been trusted with",
@@ -132,11 +160,16 @@ export async function getAdminStats() {
       description: string;
     }>(row?.content),
   };
-}
+}, ["admin-stats"], {
+  tags: [CACHE_TAGS.stats],
+  revalidate: FIVE_MINUTES,
+});
 
-export function getAdminTeam() {
-  return prisma.teamMember.findMany({ orderBy: { order: "asc" } });
-}
+export const getAdminTeam = unstable_cache(
+  async () => prisma.teamMember.findMany({ orderBy: { order: "asc" } }),
+  ["admin-team"],
+  { tags: [CACHE_TAGS.team], revalidate: FIVE_MINUTES }
+);
 
 function safeParseArray<T>(raw?: string | null): T[] {
   if (!raw) return [];
