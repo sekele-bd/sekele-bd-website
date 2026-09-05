@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { ImagePlus, LoaderCircle, Plus, Trash2, Upload } from "lucide-react";
 import AdminModal from "@/components/admin/AdminModal";
 import ConfirmModal from "@/components/admin/ConfirmModal";
 import { useToast } from "@/components/admin/Toast";
+import { deleteAdminImage, uploadAdminImage } from "@/lib/admin-image-upload";
 
 type Album = {
   id: string;
@@ -33,19 +34,6 @@ const empty = {
 const fieldClass =
   "w-full rounded-lg border border-neutral-200 bg-white px-3.5 py-2.5 text-sm text-neutral-900 outline-none transition placeholder:text-neutral-400 focus:border-rose-500 focus:ring-3 focus:ring-rose-100";
 
-async function deleteUploadedImage(url: string) {
-  if (!url) return;
-  try {
-    await fetch("/api/admin/upload", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url }),
-    });
-  } catch {
-    /* ignore */
-  }
-}
-
 export default function AdminAlbumsClient({
   initialItems,
 }: {
@@ -60,6 +48,7 @@ export default function AdminAlbumsClient({
   const [uploading, setUploading] = useState<"cover" | "gallery" | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const stagedUploads = useRef(new Set<string>());
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -92,7 +81,10 @@ export default function AdminAlbumsClient({
     setModalOpen(true);
   }
 
-  function closeModal() {
+  async function closeModal() {
+    const abandoned = [...stagedUploads.current];
+    stagedUploads.current.clear();
+    await Promise.allSettled(abandoned.map(deleteAdminImage));
     setModalOpen(false);
     setEditId(null);
     setForm(empty);
@@ -101,21 +93,21 @@ export default function AdminAlbumsClient({
   async function upload(files: FileList, kind: "cover" | "gallery") {
     setUploading(kind);
     try {
-      const urls = await Promise.all(
+      const results = await Promise.allSettled(
         Array.from(files).map(async (file) => {
-          const data = new FormData();
-          data.append("file", file);
-          data.append("folder", "uploads/albums");
-          const response = await fetch("/api/admin/upload", {
-            method: "POST",
-            body: data,
-          });
-          return (await response.json()).url as string | undefined;
+          const result = await uploadAdminImage(file, "uploads/albums");
+          stagedUploads.current.add(result.url);
+          return result.url;
         })
       );
-      const uploadedUrls = urls.filter((u): u is string => Boolean(u));
+      const uploadedUrls = results.flatMap((result) =>
+        result.status === "fulfilled" ? [result.value] : []
+      );
       if (kind === "cover") {
-        if (form.cover) await deleteUploadedImage(form.cover);
+        if (form.cover && stagedUploads.current.has(form.cover)) {
+          await deleteAdminImage(form.cover);
+          stagedUploads.current.delete(form.cover);
+        }
         setForm((c) => ({ ...c, cover: uploadedUrls[0] || c.cover }));
       } else {
         setForm((c) => ({
@@ -160,7 +152,10 @@ export default function AdminAlbumsClient({
       } else {
         success("Album created", "It is now available in the portfolio.");
       }
-      closeModal();
+      [payload.cover, ...form.galleryImages].forEach((url) => {
+        if (url) stagedUploads.current.delete(url);
+      });
+      await closeModal();
       load();
     } catch {
       error("Could not save album", "Please try again.");
@@ -350,7 +345,10 @@ export default function AdminAlbumsClient({
                   <button
                     type="button"
                     onClick={async () => {
-                      await deleteUploadedImage(form.cover);
+                      if (stagedUploads.current.has(form.cover)) {
+                        await deleteAdminImage(form.cover);
+                        stagedUploads.current.delete(form.cover);
+                      }
                       setForm((c) => ({ ...c, cover: "" }));
                     }}
                     className="absolute top-2 right-2 z-10 rounded-md bg-white/90 p-1.5 text-rose-600 shadow"
@@ -402,7 +400,10 @@ export default function AdminAlbumsClient({
                   <button
                     type="button"
                     onClick={async () => {
-                      await deleteUploadedImage(url);
+                      if (stagedUploads.current.has(url)) {
+                        await deleteAdminImage(url);
+                        stagedUploads.current.delete(url);
+                      }
                       setForm((c) => ({
                         ...c,
                         galleryImages: c.galleryImages.filter(
