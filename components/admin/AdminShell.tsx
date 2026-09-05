@@ -31,11 +31,6 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Close mobile sidebar on route change
-  useEffect(() => {
-    setSidebarOpen(false);
-  }, [pathname]);
-
   // Prevent body scroll when mobile sidebar is open
   useEffect(() => {
     if (sidebarOpen) {
