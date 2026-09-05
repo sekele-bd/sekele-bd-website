@@ -40,48 +40,47 @@ export async function PATCH(req: Request, ctx: Ctx) {
       images?: { url: string; alt?: string; order?: number }[];
     }>(req);
 
-    if (body.images) {
-      const existing = await prisma.album.findUnique({
-        where: { id },
-        include: { images: true },
-      });
-      if (existing) {
-        const newUrls = new Set(body.images.map((i) => i.url));
-        const removed = [
-          ...existing.images.map((i) => i.url).filter((u) => !newUrls.has(u)),
-        ];
-        if (
-          existing.cover &&
-          body.cover !== undefined &&
-          body.cover !== existing.cover
-        ) {
-          removed.push(existing.cover);
-        }
-        await deleteManyFromCloudinary(removed);
-      }
+    const existing = await prisma.album.findUnique({
+      where: { id },
+      include: { images: true },
+    });
+    if (!existing) return error("Not found", 404);
 
-      await prisma.albumImage.deleteMany({ where: { albumId: id } });
-      await prisma.albumImage.createMany({
-        data: body.images.map((img, i) => ({
-          albumId: id,
-          url: img.url,
-          alt: img.alt || null,
-          order: img.order ?? i,
-        })),
-      });
-    } else if (body.cover !== undefined) {
-      const existing = await prisma.album.findUnique({ where: { id } });
-      if (existing?.cover && existing.cover !== body.cover) {
-        await deleteManyFromCloudinary([existing.cover]);
-      }
+    const newUrls = new Set(body.images?.map((image) => image.url) || []);
+    const removedImages = body.images
+      ? existing.images.map((image) => image.url).filter((url) => !newUrls.has(url))
+      : [];
+    if (
+      existing.cover &&
+      body.cover !== undefined &&
+      body.cover !== existing.cover &&
+      !newUrls.has(existing.cover)
+    ) {
+      removedImages.push(existing.cover);
     }
 
-    const { images: _images, ...rest } = body;
-    const item = await prisma.album.update({
-      where: { id },
-      data: rest,
-      include: { images: { orderBy: { order: "asc" } } },
+    const rest = Object.fromEntries(
+      Object.entries(body).filter(([key]) => key !== "images")
+    );
+    const item = await prisma.$transaction(async (tx) => {
+      if (body.images) {
+        await tx.albumImage.deleteMany({ where: { albumId: id } });
+        await tx.albumImage.createMany({
+          data: body.images.map((img, i) => ({
+            albumId: id,
+            url: img.url,
+            alt: img.alt || null,
+            order: img.order ?? i,
+          })),
+        });
+      }
+      return tx.album.update({
+        where: { id },
+        data: rest,
+        include: { images: { orderBy: { order: "asc" } } },
+      });
     });
+    await deleteManyFromCloudinary([...new Set(removedImages)]);
 
     // Cache refresh
     afterAdminChange(CACHE_TAGS.albums);
@@ -109,12 +108,11 @@ export async function DELETE(_req: Request, ctx: Ctx) {
     });
     if (!album) return error("Not found", 404);
 
+    await prisma.album.delete({ where: { id } });
     await deleteManyFromCloudinary([
       album.cover,
       ...album.images.map((img) => img.url),
     ]);
-
-    await prisma.album.delete({ where: { id } });
 
     // Cache refresh
     afterAdminChange(CACHE_TAGS.albums);

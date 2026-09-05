@@ -15,14 +15,14 @@ export async function PATCH(req: Request, ctx: Ctx) {
       Partial<{ image: string; alt: string; order: number; isActive: boolean }>
     >(req);
 
-    if (body.image !== undefined) {
-      const existing = await prisma.slider.findUnique({ where: { id } });
-      if (existing?.image && existing.image !== body.image) {
-        await deleteImageFromCloudinary(existing.image);
-      }
-    }
+    const existing = body.image !== undefined
+      ? await prisma.slider.findUnique({ where: { id } })
+      : null;
+    const previousImage =
+      existing?.image && existing.image !== body.image ? existing.image : null;
 
     const item = await prisma.slider.update({ where: { id }, data: body });
+    if (previousImage) await deleteImageFromCloudinary(previousImage);
 
     afterAdminChange(CACHE_TAGS.sliders);
 
@@ -41,9 +41,8 @@ export async function DELETE(_req: Request, ctx: Ctx) {
     const slider = await prisma.slider.findUnique({ where: { id } });
     if (!slider) return error("Not found", 404);
 
-    if (slider.image) await deleteImageFromCloudinary(slider.image);
-
     await prisma.slider.delete({ where: { id } });
+    if (slider.image) await deleteImageFromCloudinary(slider.image);
 
     afterAdminChange(CACHE_TAGS.sliders);
 

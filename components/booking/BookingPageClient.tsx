@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import Image from "@/components/OptimizedImage";
 import { Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 import { motion } from "framer-motion";
 

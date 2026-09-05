@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
+import OptimizedImage from "@/components/OptimizedImage";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
@@ -101,7 +102,7 @@ export default function AlbumDetail({ album }: { album: Album }) {
                 onClick={() => openLightbox(index)}
                 className={`group relative overflow-hidden bg-neutral-100 ${className}`}
               >
-                <Image
+                <OptimizedImage
                   src={src}
                   alt={`${album.title} ${index + 1}`}
                   fill
@@ -111,7 +112,7 @@ export default function AlbumDetail({ album }: { album: Album }) {
                       ? "(max-width: 768px) 100vw, 50vw"
                       : "(max-width: 768px) 50vw, 25vw"
                   }
-                  priority={index < 4}
+                  priority={index === 0}
                 />
                 <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/10" />
               </button>
@@ -175,6 +176,7 @@ export default function AlbumDetail({ album }: { album: Album }) {
                 fill
                 className="object-contain"
                 sizes="100vw"
+                unoptimized
                 priority
               />
             </motion.div>

@@ -48,12 +48,8 @@ export async function uploadImageToCloudinary(
           folder,
           resource_type: "image",
           overwrite: false,
-          // Original quality রাখুন — resize/sharp নেই
-          // Delivery-তে q_auto, f_auto ব্যবহার করা যাবে
-          quality: "auto:good",
-          fetch_format: "auto",
-          // EXIF orientation ঠিক রাখে
-          flags: "preserve_transparency",
+          // Keep the original untouched. Responsive q_auto/f_auto derivatives
+          // are generated only when the website requests a delivery URL.
         },
         (err, uploaded) => {
           if (err || !uploaded) {
@@ -94,13 +90,12 @@ export function getOptimizedCloudinaryUrl(
 
   // Already a full Cloudinary URL → inject transforms after /upload/
   if (urlOrPublicId.includes("res.cloudinary.com") && urlOrPublicId.includes("/upload/")) {
-    const parts: string[] = [];
-    if (opts.width) parts.push(`w_${opts.width}`);
-    if (opts.height) parts.push(`h_${opts.height}`);
-    parts.push(`c_limit`);
-    parts.push(`q_${opts.quality || "auto"}`);
-    parts.push(`f_auto`);
-    const transform = parts.join(",");
+    const dimensions = [
+      "c_limit",
+      opts.width ? `w_${opts.width}` : "",
+      opts.height ? `h_${opts.height}` : "",
+    ].filter(Boolean).join(",");
+    const transform = `${dimensions}/q_${opts.quality || "auto"}/f_auto`;
     return urlOrPublicId.replace("/upload/", `/upload/${transform}/`);
   }
 

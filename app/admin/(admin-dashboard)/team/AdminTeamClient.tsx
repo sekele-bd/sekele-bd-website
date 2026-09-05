@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Pencil, Plus, Trash2, Upload } from "lucide-react";
@@ -8,6 +8,7 @@ import AdminModal from "@/components/admin/AdminModal";
 import ConfirmModal from "@/components/admin/ConfirmModal";
 import { useToast } from "@/components/admin/Toast";
 import Loading from "@/components/Loading";
+import { deleteAdminImage, uploadAdminImage } from "@/lib/admin-image-upload";
 
 type TeamMember = {
   id: string;
@@ -46,6 +47,7 @@ export default function AdminTeamClient({
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const stagedImage = useRef<string | null>(null);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -90,18 +92,23 @@ export default function AdminTeamClient({
     setModalOpen(true);
   }
 
+  async function closeModal(discardStaged = true) {
+    if (discardStaged && stagedImage.current) {
+      await deleteAdminImage(stagedImage.current).catch(() => undefined);
+    }
+    stagedImage.current = null;
+    setModalOpen(false);
+  }
+
   async function uploadImage(file: File) {
     setUploading(true);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("folder", "team");
-      const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
-      const data = await res.json();
-      if (data?.url) setForm((f) => ({ ...f, image: data.url }));
-      else error("Upload failed", "Could not upload photo.");
-    } catch {
-      error("Upload failed", "Please try again.");
+      if (stagedImage.current) await deleteAdminImage(stagedImage.current);
+      const result = await uploadAdminImage(file, "team");
+      stagedImage.current = result.url;
+      setForm((f) => ({ ...f, image: result.url }));
+    } catch (e) {
+      error("Upload failed", (e as Error).message || "Please try again.");
     } finally {
       setUploading(false);
     }
@@ -137,7 +144,7 @@ export default function AdminTeamClient({
       } else {
         success("Team member added", "They will appear on the About page.");
       }
-      setModalOpen(false);
+      await closeModal(false);
       load();
     } catch {
       error("Could not save", "Please try again.");
@@ -245,7 +252,7 @@ export default function AdminTeamClient({
 
       <AdminModal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => void closeModal()}
         title={editingId ? "Edit team member" : "Add team member"}
         size="lg"
       >
@@ -366,7 +373,7 @@ export default function AdminTeamClient({
           <div className="flex justify-end gap-3 border-t border-neutral-100 pt-4">
             <button
               type="button"
-              onClick={() => setModalOpen(false)}
+              onClick={() => void closeModal()}
               className="rounded-lg border border-neutral-200 px-5 py-2.5 text-sm"
             >
               Cancel
