@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/auth";
 import { error, json, parseBody } from "@/lib/api";
 import { afterAdminChange } from "@/lib/revalidate";
 import { CACHE_TAGS } from "@/lib/cache-tags";
+import { deleteImageFromCloudinary } from "@/lib/cloudinary";
 
 export async function GET() {
   try {
@@ -26,6 +27,14 @@ export async function PUT(req: Request) {
       heroImage?: string;
     }>(req);
 
+    const existing = await prisma.siteContent.findUnique({ where: { key: "contact" } });
+    let previousHero = "";
+    try {
+      previousHero = JSON.parse(existing?.content || "{}").heroImage || "";
+    } catch {
+      previousHero = "";
+    }
+
     const content = JSON.stringify({
       address: body.address || "",
       phone: body.phone || "",
@@ -43,6 +52,13 @@ export async function PUT(req: Request) {
         content,
       },
     });
+    if (
+      previousHero &&
+      previousHero !== (body.heroImage || "") &&
+      previousHero.includes("cloudinary.com")
+    ) {
+      await deleteImageFromCloudinary(previousHero);
+    }
     afterAdminChange(CACHE_TAGS.contact);
     return json(contact);
   } catch (e) {
