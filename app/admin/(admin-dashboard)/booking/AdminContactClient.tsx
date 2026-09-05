@@ -1,27 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ImagePlus, LoaderCircle, Pencil, Trash2 } from "lucide-react";
 import AdminModal from "@/components/admin/AdminModal";
+import { useToast } from "@/components/admin/Toast";
+import { deleteAdminImage, uploadAdminImage } from "@/lib/admin-image-upload";
 
 const fieldClass =
   "w-full rounded-lg border border-neutral-200 bg-white px-3.5 py-2.5 text-sm text-neutral-900 outline-none transition placeholder:text-neutral-400 focus:border-rose-500 focus:ring-3 focus:ring-rose-100";
 
 const DEFAULT_HERO =
   "https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=2000&auto=format&fit=crop";
-
-async function deleteUploadedImage(url: string) {
-  if (!url || url.includes("unsplash.com")) return;
-  try {
-    await fetch("/api/admin/upload", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url }),
-    });
-  } catch {
-    /* ignore */
-  }
-}
 
 type Draft = {
   title: string;
@@ -61,6 +50,7 @@ export default function AdminContactClient({
 }: {
   initialData: ContactData;
 }) {
+  const { error } = useToast();
   const initial = parseContact(initialData);
   const [title, setTitle] = useState(initial.title);
   const [address, setAddress] = useState(initial.address);
@@ -71,6 +61,7 @@ export default function AdminContactClient({
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const stagedImage = useRef<string | null>(null);
   const [draft, setDraft] = useState<Draft>({
     title: "",
     address: "",
@@ -85,38 +76,57 @@ export default function AdminContactClient({
     setModalOpen(true);
   }
 
+  async function closeModal(discardStaged = true) {
+    if (discardStaged && stagedImage.current) {
+      await deleteAdminImage(stagedImage.current).catch(() => undefined);
+    }
+    stagedImage.current = null;
+    setModalOpen(false);
+  }
+
   async function uploadHero(file: File) {
     setUploading(true);
-    if (draft.heroImage) await deleteUploadedImage(draft.heroImage);
-    const fd = new FormData();
-    fd.append("file", file);
-    fd.append("folder", "uploads/contact");
-    const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
-    const data = await res.json();
-    if (data.url) setDraft((d) => ({ ...d, heroImage: data.url }));
-    setUploading(false);
+    try {
+      if (stagedImage.current) await deleteAdminImage(stagedImage.current);
+      const result = await uploadAdminImage(file, "uploads/contact");
+      stagedImage.current = result.url;
+      setDraft((d) => ({ ...d, heroImage: result.url }));
+    } catch (e) {
+      error("Upload failed", (e as Error).message || "Please try again.");
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function clearHero() {
-    if (draft.heroImage) await deleteUploadedImage(draft.heroImage);
+    if (stagedImage.current) {
+      await deleteAdminImage(stagedImage.current);
+      stagedImage.current = null;
+    }
     setDraft((d) => ({ ...d, heroImage: "" }));
   }
 
   async function save() {
     setSaving(true);
-    await fetch("/api/admin/contact", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(draft),
-    });
-    setTitle(draft.title);
-    setAddress(draft.address);
-    setPhone(draft.phone);
-    setEmail(draft.email);
-    setNote(draft.note);
-    setHeroImage(draft.heroImage);
-    setSaving(false);
-    setModalOpen(false);
+    try {
+      const response = await fetch("/api/admin/contact", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(draft),
+      });
+      if (!response.ok) throw new Error("Could not save changes");
+      setTitle(draft.title);
+      setAddress(draft.address);
+      setPhone(draft.phone);
+      setEmail(draft.email);
+      setNote(draft.note);
+      setHeroImage(draft.heroImage);
+      await closeModal(false);
+    } catch (e) {
+      error("Could not save", (e as Error).message || "Please try again.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   const previewHero = heroImage || DEFAULT_HERO;
@@ -180,7 +190,7 @@ export default function AdminContactClient({
 
       <AdminModal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => void closeModal()}
         title="Edit booking contact"
         size="lg"
       >
@@ -283,7 +293,7 @@ export default function AdminContactClient({
           <div className="flex justify-end gap-3 border-t border-neutral-100 pt-5">
             <button
               type="button"
-              onClick={() => setModalOpen(false)}
+              onClick={() => void closeModal()}
               className="rounded-lg border border-neutral-200 px-5 py-2.5 text-sm text-neutral-600"
             >
               Cancel

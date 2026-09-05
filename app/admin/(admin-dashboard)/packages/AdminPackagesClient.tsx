@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { ImagePlus, Plus, Trash2 } from "lucide-react";
@@ -8,6 +8,7 @@ import AdminModal from "@/components/admin/AdminModal";
 import AdminPackagesNote from "@/components/admin/AdminPackagesNote";
 import ConfirmModal from "@/components/admin/ConfirmModal";
 import { useToast } from "@/components/admin/Toast";
+import { deleteAdminImage, uploadAdminImage } from "@/lib/admin-image-upload";
 
 type Pkg = {
   id: string;
@@ -34,19 +35,6 @@ const empty = {
 const fieldClass =
   "w-full rounded-lg border border-neutral-200 bg-white px-3.5 py-2.5 text-sm text-neutral-900 outline-none transition placeholder:text-neutral-400 focus:border-rose-500 focus:ring-3 focus:ring-rose-100";
 
-async function deleteUploadedImage(url: string) {
-  if (!url) return;
-  try {
-    await fetch("/api/admin/upload", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url }),
-    });
-  } catch {
-    /* ignore */
-  }
-}
-
 export default function AdminPackagesClient({
   initialItems,
   initialNote,
@@ -64,6 +52,7 @@ export default function AdminPackagesClient({
   const [uploading, setUploading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const stagedUploads = useRef(new Set<string>());
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -95,7 +84,10 @@ export default function AdminPackagesClient({
     setModalOpen(true);
   }
 
-  function closeModal() {
+  async function closeModal() {
+    const abandoned = [...stagedUploads.current];
+    stagedUploads.current.clear();
+    await Promise.allSettled(abandoned.map(deleteAdminImage));
     setModalOpen(false);
     setEditId(null);
     setForm(empty);
@@ -103,27 +95,26 @@ export default function AdminPackagesClient({
 
   async function upload(file: File) {
     setUploading(true);
-    if (form.image) await deleteUploadedImage(form.image);
-    const data = new FormData();
-    data.append("file", file);
-    data.append("folder", "uploads/packages");
     try {
-      const response = await fetch("/api/admin/upload", {
-        method: "POST",
-        body: data,
-      });
-      const result = await response.json();
-      if (result.url) setForm((current) => ({ ...current, image: result.url }));
-      else error("Upload failed");
-    } catch {
-      error("Upload failed", "Please try again.");
+      if (form.image && stagedUploads.current.has(form.image)) {
+        await deleteAdminImage(form.image);
+        stagedUploads.current.delete(form.image);
+      }
+      const result = await uploadAdminImage(file, "uploads/packages");
+      stagedUploads.current.add(result.url);
+      setForm((current) => ({ ...current, image: result.url }));
+    } catch (e) {
+      error("Upload failed", (e as Error).message || "Please try again.");
     } finally {
       setUploading(false);
     }
   }
 
   async function clearPackageImage() {
-    if (form.image) await deleteUploadedImage(form.image);
+    if (form.image && stagedUploads.current.has(form.image)) {
+      await deleteAdminImage(form.image);
+      stagedUploads.current.delete(form.image);
+    }
     setForm((c) => ({ ...c, image: "" }));
   }
 
@@ -186,7 +177,8 @@ export default function AdminPackagesClient({
       } else {
         success("Package created", "It is now available on the packages page.");
       }
-      closeModal();
+      if (payload.image) stagedUploads.current.delete(payload.image);
+      await closeModal();
       load();
     } catch {
       error("Could not save package", "Please try again.");

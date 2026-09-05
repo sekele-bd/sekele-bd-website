@@ -26,17 +26,17 @@ export async function PATCH(req: Request, ctx: Ctx) {
       isActive?: boolean;
     }>(req);
 
-    if (body.image !== undefined) {
-      const existing = await prisma.package.findUnique({ where: { id } });
-      if (existing?.image && existing.image !== body.image) {
-        await deleteImageFromCloudinary(existing.image);
-      }
-    }
+    const existing = body.image !== undefined
+      ? await prisma.package.findUnique({ where: { id } })
+      : null;
+    const previousImage =
+      existing?.image && existing.image !== body.image ? existing.image : null;
 
     const data: Record<string, unknown> = { ...body };
     if (body.features) data.features = JSON.stringify(body.features);
 
     const item = await prisma.package.update({ where: { id }, data });
+    if (previousImage) await deleteImageFromCloudinary(previousImage);
     let features: string[] = [];
     try {
       features = JSON.parse(item.features);
@@ -61,8 +61,8 @@ export async function DELETE(_req: Request, ctx: Ctx) {
     const pkg = await prisma.package.findUnique({ where: { id } });
     if (!pkg) return error("Not found", 404);
 
-    await deleteManyFromCloudinary([pkg.image]);
     await prisma.package.delete({ where: { id } });
+    await deleteManyFromCloudinary([pkg.image]);
 
     afterAdminChange(CACHE_TAGS.packages);
 

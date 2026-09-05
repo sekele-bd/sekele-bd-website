@@ -7,7 +7,7 @@ import { ImagePlus, LoaderCircle, Plus, Trash2 } from "lucide-react";
 import AdminModal from "@/components/admin/AdminModal";
 import ConfirmModal from "@/components/admin/ConfirmModal";
 import { useToast } from "@/components/admin/Toast";
-
+import { deleteAdminImage, uploadAdminImage } from "@/lib/admin-image-upload";
 
 type Slider = {
   id: string;
@@ -16,19 +16,6 @@ type Slider = {
   order: number;
   isActive: boolean;
 };
-
-async function deleteUploadedImage(url: string) {
-  if (!url) return;
-  try {
-    await fetch("/api/admin/upload", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url }),
-    });
-  } catch {
-    /* ignore */
-  }
-}
 
 export default function AdminSlidersClient({
   initialItems,
@@ -64,7 +51,10 @@ export default function AdminSlidersClient({
     setModalOpen(true);
   }
 
-  function closeModal() {
+  async function closeModal(removeStagedImage = true) {
+    if (removeStagedImage && image) {
+      await deleteAdminImage(image).catch(() => undefined);
+    }
     setModalOpen(false);
     setImage("");
     setAlt("");
@@ -72,18 +62,19 @@ export default function AdminSlidersClient({
 
   async function upload(file: File) {
     setUploading(true);
-    if (image) await deleteUploadedImage(image);
-    const fd = new FormData();
-    fd.append("file", file);
-    fd.append("folder", "uploads/sliders");
-    const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
-    const data = await res.json();
-    setUploading(false);
-    if (data.url) setImage(data.url);
+    try {
+      if (image) await deleteAdminImage(image);
+      const result = await uploadAdminImage(file, "uploads/sliders");
+      setImage(result.url);
+    } catch (e) {
+      error("Upload failed", (e as Error).message || "Please try again.");
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function clearPreview() {
-    if (image) await deleteUploadedImage(image);
+    if (image) await deleteAdminImage(image);
     setImage("");
   }
 
@@ -98,7 +89,7 @@ export default function AdminSlidersClient({
       });
       if (!res.ok) throw new Error("Failed");
       success("Slide added", "It will appear on the homepage hero.");
-      closeModal();
+      await closeModal(false);
       load();
     } catch {
       error("Could not add slide", "Please try again.");
@@ -277,7 +268,7 @@ export default function AdminSlidersClient({
             <div className="mt-auto flex justify-end gap-3 pt-5">
               <button
                 type="button"
-                onClick={closeModal}
+                onClick={() => closeModal()}
                 className="rounded-lg border border-neutral-200 px-4 py-2.5 text-sm"
               >
                 Cancel

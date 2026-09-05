@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import Image from "@/components/OptimizedImage";
 import { motion } from "framer-motion";
 import { FaFacebook, FaInstagram } from "react-icons/fa";
 import { Mail } from "lucide-react";

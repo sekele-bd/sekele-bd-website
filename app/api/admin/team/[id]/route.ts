@@ -25,14 +25,10 @@ export async function PUT(req: Request, ctx: Ctx) {
     const existing = await prisma.teamMember.findUnique({ where: { id } });
     if (!existing) return error("Not found", 404);
 
-    if (
-      body.image !== undefined &&
-      existing.image &&
-      body.image !== existing.image &&
-      existing.image.includes("cloudinary.com")
-    ) {
-      await deleteImageFromCloudinary(existing.image);
-    }
+    const previousImage =
+      body.image !== undefined && body.image !== existing.image
+        ? existing.image
+        : null;
 
     const member = await prisma.teamMember.update({
       where: { id },
@@ -54,6 +50,10 @@ export async function PUT(req: Request, ctx: Ctx) {
       },
     });
 
+    if (previousImage?.includes("cloudinary.com")) {
+      await deleteImageFromCloudinary(previousImage);
+    }
+
     afterAdminChange(CACHE_TAGS.team);
 
     return json(member);
@@ -70,11 +70,10 @@ export async function DELETE(_req: Request, ctx: Ctx) {
     const existing = await prisma.teamMember.findUnique({ where: { id } });
     if (!existing) return error("Not found", 404);
 
+    await prisma.teamMember.delete({ where: { id } });
     if (existing.image?.includes("cloudinary.com")) {
       await deleteImageFromCloudinary(existing.image);
     }
-
-    await prisma.teamMember.delete({ where: { id } });
 
     afterAdminChange(CACHE_TAGS.team);
 
